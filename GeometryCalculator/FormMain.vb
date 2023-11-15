@@ -19,13 +19,13 @@ Public Class FormMain
     Dim fontNormal As New Font("Seoge UI", 8)
     Dim fontBig As New Font("Seoge UI", 14)
 
-    Dim mode As Integer = -1
-    Dim ptMin As Point
-    Dim ptMax As Point
+    Dim curMode As Mode = Mode.NA
+
+    Dim curPoint As PointF
     Dim ptTangents() As PointF
+    Dim curDistance As Single
 
     Public Sub New()
-
         ' This call is required by the designer.
         InitializeComponent()
 
@@ -118,30 +118,122 @@ Public Class FormMain
             Next
 
             ' Draw the found elements
-            If mode = 1 Then
-                DrawPointWithCoordinates(g, ptMin, brhRed, brhGreen, fontNormal, "Min")
-                DrawPointWithCoordinates(g, ptMax, brhRed, brhGreen, fontNormal, "Max")
-                g.DrawLine(Pens.Red, ptTangents(0), pointList.Item(0))
-                DrawPointWithCoordinates(g, ptTangents(0), brhRed, brhGreen, fontNormal, "Tangent 1")
-                g.DrawLine(Pens.Red, ptTangents(1), pointList.Item(0))
-                DrawPointWithCoordinates(g, ptTangents(1), brhRed, brhGreen, fontNormal, "Tangent 2")
+            If curMode = Mode.CircleAndLine Then
+                If radioMin.Checked Then
+                    DrawPointWithCoordinates(g, curPoint, brhRed, brhGreen, fontNormal, "Min")
+                End If
+                If radioMax.Checked Then
+                    DrawPointWithCoordinates(g, curPoint, brhRed, brhGreen, fontNormal, "Max")
+                End If
+                If radioTangent.Checked Then
+                    g.DrawLine(Pens.Red, ptTangents(0), pointList(0))
+                    g.DrawLine(Pens.Blue, ptTangents(0), circleList(0).center)
+                    DrawPointWithCoordinates(g, ptTangents(0), brhRed, brhGreen, fontNormal, "Tangent 1")
+                    g.DrawLine(Pens.Red, ptTangents(1), pointList(0))
+                    g.DrawLine(Pens.Blue, ptTangents(1), circleList(0).center)
+                    DrawPointWithCoordinates(g, ptTangents(1), brhRed, brhGreen, fontNormal, "Tangent 2")
+                End If
             End If
+
+            If curMode = Mode.PointAndLine Then
+                g.DrawLine(Pens.Red, curPoint, pointList(0))
+                DrawPointWithCoordinates(g, curPoint, brhBlue, brhBlack, fontNormal)
+                If radioPerpendicular.Checked Then
+                    If curPoint.X > lineList(0).startPt.X And curPoint.X > lineList(0).endPt.X Then
+                        g.DrawLine(Pens.Magenta, curPoint, If(lineList(0).startPt.X > lineList(0).endPt.X, lineList(0).startPt, lineList(0).endPt))
+                    ElseIf curPoint.X < lineList(0).startPt.X And curPoint.X < lineList(0).endPt.X Then
+                        g.DrawLine(Pens.Magenta, curPoint, If(lineList(0).startPt.X < lineList(0).endPt.X, lineList(0).startPt, lineList(0).endPt))
+                    End If
+                End If
+            End If
+
+            If curMode = Mode.CircleAndCircle Then
+                g.DrawLine(Pens.Blue, circleList(0).center, circleList(1).center)
+            End If
+
+            If curMode = Mode.PointAndTwoLines Then
+                g.DrawLine(Pens.Blue, curPoint, pointList(0))
+                DrawPointWithCoordinates(g, curPoint, brhRed, brhBlack, fontNormal)
+            End If
+
         End Using
     End Sub
 
-    Private Sub DrawPointWithCoordinates(ByRef g As Graphics, pt As PointF, ByRef brhPoint As Brush, ByRef brhString As Brush, ByRef font As Font, Optional suffix As String = "")
-        g.FillEllipse(brhPoint, CInt(pt.X - 2), CInt(pt.Y - 2), 4, 4)
-        g.DrawString(suffix + "(" + pt.X.ToString + ", " + pt.Y.ToString + ")", font, brhString, pt.X + 5, pt.Y + 5)
-    End Sub
+    Private Sub btnGetDistanceBetweenPointAndIntersection_Click(sender As Object, e As EventArgs) Handles btnGetDistanceBetweenPointAndIntersection.Click
+        If Not (pointList.Count > 0 And lineList.Count > 1) Then
+            MessageBox.Show("One point and two lines are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+        curMode = Mode.PointAndTwoLines
 
-    Private Sub btnClear_Click(sender As Object, e As EventArgs) Handles btnClear.Click
-        circleList.Clear()
-        lineList.Clear()
-        pointList.Clear()
-        mode = -1
-        txtResult.Text = ""
+        curPoint = GetIntersection(lineList(0), lineList(1))
+        curDistance = CalculateDistance(curPoint, pointList(0))
+        txtResult.Text = "Distance between a point and intersection of two lines:" + curDistance.ToString
         DrawOnBuffer()
         picView.Invalidate()
+    End Sub
+    Private Sub btnGetDistanceBetweenTwoCircles_Click(sender As Object, e As EventArgs) Handles btnGetDistanceBetweenTwoCircles.Click
+        If circleList.Count < 2 Then
+            MessageBox.Show("Two circles are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+        curMode = Mode.CircleAndCircle
+        Dim centerDistance As Single = CalculateDistance(circleList(0).center, circleList(1).center)
+        Dim distance As Single = circleList(0).radius + circleList(1).radius
+
+        If radioMax.Checked Then
+            curDistance = centerDistance + (circleList(0).radius + circleList(1).radius)
+            txtResult.Text = "Max distance between two circle:" + curDistance.ToString
+        ElseIf radioMin.Checked Then
+            curDistance = Math.Abs(centerDistance - (circleList(0).radius + circleList(1).radius))
+            txtResult.Text = "Min distance between two circle:" + curDistance.ToString
+        ElseIf radioTangent.Checked Then
+            Dim externalDistance As Single = Math.Sqrt((circleList(0).radius - circleList(1).radius) ^ 2 + centerDistance ^ 2)
+            curDistance = If(centerDistance < distance, externalDistance,
+                    Math.Min(externalDistance, Math.Sqrt(centerDistance ^ 2 - (circleList(0).radius + circleList(1).radius) ^ 2)))
+            txtResult.Text = "Tangent distance between two circle:" + curDistance.ToString
+        End If
+
+        DrawOnBuffer()
+        picView.Invalidate()
+    End Sub
+
+    Private Sub btnGetDistanceBetweenPointAndLine_Click(sender As Object, e As EventArgs) Handles btnGetDistanceBetweenPointAndLine.Click
+        If lineList.Count = 0 Or pointList.Count = 0 Then
+            MessageBox.Show("One line and one point are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+
+        curMode = Mode.PointAndLine
+        Dim distance1 As Single = CalculateDistance(lineList(0).startPt, pointList(0))
+        Dim distance2 As Single = CalculateDistance(lineList(0).endPt, pointList(0))
+
+        If radioMax.Checked Then
+            curPoint = If(distance1 > distance2, lineList(0).startPt, lineList(0).endPt)
+            txtResult.Text = "Max distance between circle and point:" + If(distance1 > distance2, distance1, distance2).ToString
+        End If
+
+        If radioMin.Checked Then
+            curPoint = If(distance1 < distance2, lineList(0).startPt, lineList(0).endPt)
+            txtResult.Text = "Min distance between circle and point:" + If(distance1 < distance2, distance1, distance2).ToString
+        End If
+
+        If radioPerpendicular.Checked Then
+            Dim xNearest As Double = (pointList(0).X + lineList(0).slope * pointList(0).Y - lineList(0).slope * lineList(0).intercept) / (lineList(0).slope ^ 2 + 1)
+            Dim yNearest As Double = lineList(0).slope * xNearest + lineList(0).intercept
+            curPoint = New Point(xNearest, yNearest)
+            txtResult.Text = "Perpendicular distance between circle and point:" + CalculateDistance(curPoint, pointList(0)).ToString
+        End If
+        DrawOnBuffer()
+        picView.Invalidate()
+    End Sub
+    Private Sub btnGetAngleBetweenTwoLines_Click(sender As Object, e As EventArgs) Handles btnGetAngleBetweenTwoLines.Click
+        If lineList.Count < 2 Then
+            MessageBox.Show("Two lines are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+        curMode = Mode.LineAndLine
+        txtResult.Text = "Angle between two lines: " + CalculateAngleBetweenLines(lineList(0), lineList(1)).ToString + " degree"
     End Sub
 
     Private Sub btnGetDistanceBetweenCircleAndPoint_Click(sender As Object, e As EventArgs) Handles btnGetDistanceBetweenCircleAndPoint.Click
@@ -149,20 +241,75 @@ Public Class FormMain
             MessageBox.Show("One circle and one point are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Return
         End If
-        mode = 1
-        FindPointsOnCircle(circleList.Item(0), pointList.Item(0), ptMax, ptMin)
-        ptTangents = FindTangentPoints(circleList.Item(0), pointList.Item(0))
 
-        Dim tangentDistance = Math.Sqrt(CalculateDistance(circleList.Item(0).center, pointList.Item(0)) ^ 2 - circleList.Item(0).radius ^ 2)
+        curMode = Mode.CircleAndLine
+        If radioMin.Checked Or radioMax.Checked Then
+            FindPointsOnCircle(circleList(0), pointList(0), curPoint, curPoint)
+        End If
 
-        txtResult.Text = "Min distance between circle and point:" + CalculateDistance(pointList.Item(0), ptMin).ToString + vbCrLf +
-            "Max distance between circle and point:" + CalculateDistance(pointList.Item(0), ptMax).ToString + vbCrLf +
-            "Tangent distance between circle and point:" + tangentDistance.ToString
+        If radioMin.Checked Then
+            txtResult.Text = "Min distance between circle and point:" + CalculateDistance(pointList(0), curPoint).ToString
+        End If
+        If radioMax.Checked Then
+            txtResult.Text = "Max distance between circle and point:" + CalculateDistance(pointList(0), curPoint).ToString
+        End If
+        If radioTangent.Checked Then
+            Dim distance As Single = CalculateDistance(circleList(0).center, pointList(0))
+            If distance < circleList(0).radius Then
+                MessageBox.Show("Tangent can be calculated for the point in circle.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                Return
+            End If
+            Dim tangentDistance = Math.Sqrt(distance ^ 2 - circleList(0).radius ^ 2)
+            ptTangents = FindTangentPoints(circleList(0), pointList(0))
+
+            txtResult.Text = "Tangent distance between circle and point:" + tangentDistance.ToString
+        End If
+
         DrawOnBuffer()
         picView.Invalidate()
     End Sub
 
-    Sub FindPointsOnCircle(ByVal circle As Circle, ByVal point As Point, ByRef maxDistancePoint As Point, ByRef minDistancePoint As Point)
+    Private Sub btnClear_Click(sender As Object, e As EventArgs) Handles btnClear.Click
+        circleList.Clear()
+        lineList.Clear()
+        pointList.Clear()
+        curMode = Mode.NA
+        txtResult.Text = ""
+        DrawOnBuffer()
+        picView.Invalidate()
+    End Sub
+
+    Private Sub DrawPointWithCoordinates(ByRef g As Graphics, pt As PointF, ByRef brhPoint As Brush, ByRef brhString As Brush, ByRef font As Font, Optional suffix As String = "")
+        g.FillEllipse(brhPoint, CInt(pt.X - 2), CInt(pt.Y - 2), 4, 4)
+        g.DrawString(suffix + "(" + pt.X.ToString + ", " + pt.Y.ToString + ")", font, brhString, pt.X + 5, pt.Y + 5)
+    End Sub
+
+    Function GetIntersection(line1 As Line, line2 As Line) As PointF
+        ' Calculate the x-coordinate of the intersection point
+        Dim x As Double = (line2.intercept - line1.intercept) / (line1.slope - line2.slope)
+
+        ' Use the x-coordinate to calculate the y-coordinate
+        Dim y As Double = line1.slope * x + line1.intercept
+
+        Return New PointF(x, y)
+    End Function
+
+    ' Function to calculate the angle between two lines
+    Function CalculateAngleBetweenLines(line1 As Line, line2 As Line) As Single
+        ' Calculate slopes
+        Dim slope1 As Double = line1.slope
+        Dim slope2 As Double = line2.slope
+
+        ' Calculate the angle using arctangent
+        Dim angle As Single = Math.Atan(Math.Abs((slope2 - slope1) / (1 + slope1 * slope2)))
+
+        ' Convert the angle from radians to degrees
+        angle = angle * (180 / Math.PI)
+
+        Return angle
+    End Function
+
+    Sub FindPointsOnCircle(ByVal circle As Circle, ByVal point As Point, ByRef maxDistancePoint As PointF, ByRef minDistancePoint As PointF)
         ' Calculate the angle between the center of the circle and the point
         Dim angle As Double = Math.Atan2(point.Y - circle.center.Y, point.X - circle.center.X)
 
@@ -232,5 +379,14 @@ Public Class FormMain
             rect = New Rectangle(center.X - radius, center.Y - radius, 2 * radius, 2 * radius)
         End Sub
     End Structure
+
+    Enum Mode
+        NA
+        CircleAndLine
+        LineAndLine
+        PointAndLine
+        CircleAndCircle
+        PointAndTwoLines
+    End Enum
 
 End Class

@@ -29,12 +29,16 @@ Partial Class FormMain
         radioPoint = New RadioButton()
         btnClear = New Button()
         GroupBox2 = New GroupBox()
+        radioPerpendicular = New RadioButton()
         radioTangent = New RadioButton()
         radioMin = New RadioButton()
         radioMax = New RadioButton()
         btnGetDistanceBetweenCircleAndPoint = New Button()
         txtResult = New TextBox()
         btnGetAngleBetweenTwoLines = New Button()
+        btnGetDistanceBetweenPointAndLine = New Button()
+        btnGetDistanceBetweenTwoCircles = New Button()
+        btnGetDistanceBetweenPointAndIntersection = New Button()
         CType(picView, ComponentModel.ISupportInitialize).BeginInit()
         GroupBox1.SuspendLayout()
         GroupBox2.SuspendLayout()
@@ -45,7 +49,7 @@ Partial Class FormMain
         picView.BorderStyle = BorderStyle.FixedSingle
         picView.Location = New Point(10, 11)
         picView.Name = "picView"
-        picView.Size = New Size(653, 415)
+        picView.Size = New Size(653, 447)
         picView.TabIndex = 0
         picView.TabStop = False
         ' 
@@ -104,15 +108,26 @@ Partial Class FormMain
         ' 
         ' GroupBox2
         ' 
+        GroupBox2.Controls.Add(radioPerpendicular)
         GroupBox2.Controls.Add(radioTangent)
         GroupBox2.Controls.Add(radioMin)
         GroupBox2.Controls.Add(radioMax)
         GroupBox2.Location = New Point(671, 155)
         GroupBox2.Name = "GroupBox2"
-        GroupBox2.Size = New Size(169, 105)
+        GroupBox2.Size = New Size(169, 122)
         GroupBox2.TabIndex = 1
         GroupBox2.TabStop = False
         GroupBox2.Text = "Measure Type"
+        ' 
+        ' radioPerpendicular
+        ' 
+        radioPerpendicular.AutoSize = True
+        radioPerpendicular.Location = New Point(32, 97)
+        radioPerpendicular.Name = "radioPerpendicular"
+        radioPerpendicular.Size = New Size(98, 19)
+        radioPerpendicular.TabIndex = 0
+        radioPerpendicular.Text = "Perpendicular"
+        radioPerpendicular.UseVisualStyleBackColor = True
         ' 
         ' radioTangent
         ' 
@@ -148,7 +163,7 @@ Partial Class FormMain
         ' 
         ' btnGetDistanceBetweenCircleAndPoint
         ' 
-        btnGetDistanceBetweenCircleAndPoint.Location = New Point(671, 268)
+        btnGetDistanceBetweenCircleAndPoint.Location = New Point(671, 283)
         btnGetDistanceBetweenCircleAndPoint.Name = "btnGetDistanceBetweenCircleAndPoint"
         btnGetDistanceBetweenCircleAndPoint.Size = New Size(169, 44)
         btnGetDistanceBetweenCircleAndPoint.TabIndex = 3
@@ -157,27 +172,57 @@ Partial Class FormMain
         ' 
         ' txtResult
         ' 
-        txtResult.Location = New Point(10, 438)
+        txtResult.Location = New Point(12, 464)
         txtResult.Multiline = True
         txtResult.Name = "txtResult"
         txtResult.ReadOnly = True
-        txtResult.Size = New Size(653, 66)
+        txtResult.Size = New Size(651, 82)
         txtResult.TabIndex = 4
         ' 
         ' btnGetAngleBetweenTwoLines
         ' 
-        btnGetAngleBetweenTwoLines.Location = New Point(671, 318)
+        btnGetAngleBetweenTwoLines.Location = New Point(671, 334)
         btnGetAngleBetweenTwoLines.Name = "btnGetAngleBetweenTwoLines"
         btnGetAngleBetweenTwoLines.Size = New Size(169, 44)
         btnGetAngleBetweenTwoLines.TabIndex = 3
         btnGetAngleBetweenTwoLines.Text = "Get Angle between Two Lines"
         btnGetAngleBetweenTwoLines.UseVisualStyleBackColor = True
         ' 
+        ' btnGetDistanceBetweenPointAndLine
+        ' 
+        btnGetDistanceBetweenPointAndLine.Location = New Point(671, 385)
+        btnGetDistanceBetweenPointAndLine.Name = "btnGetDistanceBetweenPointAndLine"
+        btnGetDistanceBetweenPointAndLine.Size = New Size(169, 44)
+        btnGetDistanceBetweenPointAndLine.TabIndex = 5
+        btnGetDistanceBetweenPointAndLine.Text = "Get Distance between Point and Line"
+        btnGetDistanceBetweenPointAndLine.UseVisualStyleBackColor = True
+        ' 
+        ' btnGetDistanceBetweenTwoCircles
+        ' 
+        btnGetDistanceBetweenTwoCircles.Location = New Point(671, 436)
+        btnGetDistanceBetweenTwoCircles.Name = "btnGetDistanceBetweenTwoCircles"
+        btnGetDistanceBetweenTwoCircles.Size = New Size(169, 44)
+        btnGetDistanceBetweenTwoCircles.TabIndex = 6
+        btnGetDistanceBetweenTwoCircles.Text = "Get Distance between Two Circles"
+        btnGetDistanceBetweenTwoCircles.UseVisualStyleBackColor = True
+        ' 
+        ' btnGetDistanceBetweenPointAndIntersection
+        ' 
+        btnGetDistanceBetweenPointAndIntersection.Location = New Point(671, 487)
+        btnGetDistanceBetweenPointAndIntersection.Name = "btnGetDistanceBetweenPointAndIntersection"
+        btnGetDistanceBetweenPointAndIntersection.Size = New Size(169, 44)
+        btnGetDistanceBetweenPointAndIntersection.TabIndex = 7
+        btnGetDistanceBetweenPointAndIntersection.Text = "Get Distance between Point and Intersection of Two Lines"
+        btnGetDistanceBetweenPointAndIntersection.UseVisualStyleBackColor = True
+        ' 
         ' FormMain
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(844, 507)
+        ClientSize = New Size(844, 551)
+        Controls.Add(btnGetDistanceBetweenPointAndIntersection)
+        Controls.Add(btnGetDistanceBetweenTwoCircles)
+        Controls.Add(btnGetDistanceBetweenPointAndLine)
         Controls.Add(txtResult)
         Controls.Add(btnGetAngleBetweenTwoLines)
         Controls.Add(btnGetDistanceBetweenCircleAndPoint)
@@ -209,5 +254,9 @@ Partial Class FormMain
     Friend WithEvents btnGetDistanceBetweenCircleAndPoint As Button
     Friend WithEvents txtResult As TextBox
     Friend WithEvents btnGetAngleBetweenTwoLines As Button
+    Friend WithEvents btnGetDistanceBetweenPointAndLine As Button
+    Friend WithEvents radioPerpendicular As RadioButton
+    Friend WithEvents btnGetDistanceBetweenTwoCircles As Button
+    Friend WithEvents btnGetDistanceBetweenPointAndIntersection As Button
 
 End Class
