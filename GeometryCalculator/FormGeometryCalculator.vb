@@ -1,5 +1,6 @@
 ﻿Imports System.Drawing.Text
 Imports System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox
+Imports MathNet.Numerics
 
 Public Class FormGeometryCalculator
 
@@ -34,8 +35,13 @@ Public Class FormGeometryCalculator
     Dim curDistance As Single
 
     ' Create a ContextMenuStrip
-    Dim curPt As PointF
+    Dim clickedPt As PointF
     Dim contextMenu As New ContextMenuStrip()
+
+    Dim minSelected As Boolean = False
+    Dim maxSelected As Boolean = False
+    Dim tangentSelected As Boolean = False
+    Dim perpendicularSelected As Boolean = False
 
     Public Sub New()
         ' This call is required by the designer.
@@ -44,16 +50,23 @@ Public Class FormGeometryCalculator
         picView.Width = 1000
         picView.Height = 750
 
-        txtResult.Top = picView.Bottom + 10
-        txtResult.Width = picView.Width
-        panelGeometryCalculator.Left = picView.Right + 10
-        panelOutlierFinder.Left = panelGeometryCalculator.Right + 10
-        Me.ClientSize = New Size(panelOutlierFinder.Right + 10, txtResult.Bottom + 10)
-
+        panelOutlierFinder.Left = picView.Right + 10
+        dgvResults.Left = panelOutlierFinder.Left
+        dgvResults.Top = panelOutlierFinder.Bottom + 10
+        dgvResults.Height = picView.Bottom - dgvResults.Top
+        Me.ClientSize = New Size(panelOutlierFinder.Right + 10, picView.Bottom + 10)
 
         ' Add any initialization after the InitializeComponent() call.
         ' Create the buffer bitmap
         bufferBitmap = New Bitmap(picView.Width, picView.Height)
+
+        ' Update data grid view for result
+        dgvResults.AllowUserToAddRows = False
+        'dgvResults.AllowUserToDeleteRows = False
+        dgvResults.ColumnCount = 3
+        dgvResults.Columns(0).HeaderText = "Type"
+        dgvResults.Columns(1).HeaderText = "Measurement"
+        dgvResults.Columns(2).HeaderText = "Value"
 
         ' Set example points
         outlierPoints.Add(New PointF With {.X = 350.25, .Y = 268.12})
@@ -62,18 +75,13 @@ Public Class FormGeometryCalculator
         outlierPoints.Add(New PointF With {.X = 540.52, .Y = 150.06})
         outlierPoints.Add(New PointF With {.X = 276.33, .Y = 230.78})
 
-        'outlierPoints.Add(New PointF With {.X = 200, .Y = 150.06})
-        'outlierPoints.Add(New PointF With {.X = 200, .Y = 230.78})
-
         ' Update data grid view with points
-        ' Set up the DataGridView
-        dataGrid.ColumnCount = 3
-        dataGrid.Columns(0).HeaderText = "X"
-        dataGrid.Columns(1).HeaderText = "Y"
-        dataGrid.Columns(2).HeaderText = "Data Analysis"
-
+        dgvPoints.ColumnCount = 3
+        dgvPoints.Columns(0).HeaderText = "X"
+        dgvPoints.Columns(1).HeaderText = "Y"
+        dgvPoints.Columns(2).HeaderText = "Data Analysis"
         For Each pt As PointF In outlierPoints
-            dataGrid.Rows.Add(pt.X.ToString, pt.Y.ToString, "")
+            dgvPoints.Rows.Add(pt.X.ToString, pt.Y.ToString, "")
             points.Add(pt)
         Next
 
@@ -84,93 +92,54 @@ Public Class FormGeometryCalculator
 
     Private Sub UpdateUI()
         ' UI elements for geometry calculator
-
-        btnGetDistanceBetweenCircleAndPoint.Enabled = selPoints.Count > 0 And selCircles.Count > 0
-        btnGetAngleBetweenTwoLines.Enabled = selLines.Count > 1
-        btnGetDistanceBetweenPointAndLine.Enabled = selPoints.Count > 0 And selLines.Count > 0
-        btnGetDistanceBetweenTwoCircles.Enabled = selCircles.Count > 1
-        btnCreateIntersectionPointBetweenTwoLines.Enabled = selLines.Count > 1
-
-        radioMax.Enabled = (selPoints.Count > 0 And selCircles.Count > 0) Or (selPoints.Count > 0 And selLines.Count > 0) Or selCircles.Count > 1
-        radioMin.Enabled = (selPoints.Count > 0 And selCircles.Count > 0) Or selPoints.Count > 0 And selLines.Count > 0 Or selCircles.Count > 1
-        Dim preStatus As Boolean = radioTangent.Enabled
-        radioTangent.Enabled = selCircles.Count > 1 Or (selPoints.Count > 0 And selCircles.Count > 0)
-        If preStatus = True And radioTangent.Enabled = False Then
-            radioMax.Checked = True
-        End If
-
-        preStatus = radioPerpendicular.Enabled
-        radioPerpendicular.Enabled = selPoints.Count > 0 And selLines.Count > 0
-        If preStatus = True And radioPerpendicular.Enabled = False Then
-            radioMax.Checked = True
-        End If
-
     End Sub
     Private Sub MenuItem_Clicked(sender As Object, e As EventArgs)
         If contextMenu Is Nothing Then Exit Sub
+
+        minSelected = False
+        maxSelected = False
+        tangentSelected = False
+        perpendicularSelected = False
 
         contextMenu.Hide() 'Sometimes the menu items can remain open.  May not be necessary for you.
         Dim item As ToolStripMenuItem = TryCast(sender, ToolStripMenuItem)
         If item IsNot Nothing Then
             Select Case item.Text
                 Case "Delete"
-                    Dim deleted As Boolean = False
-                    For Each circle As Circle In circles
-                        If Math.Abs(CalculateDistance(curPt, circle.center) - circle.radius) <= 2 Then
-                            circles.Remove(circle)
-                            deleted = True
-                            GoTo lEnd
-                        End If
-                    Next
-                    For Each circle As Circle In selCircles
-                        If Math.Abs(CalculateDistance(curPt, circle.center) - circle.radius) <= 2 Then
-                            selCircles.Remove(circle)
-                            deleted = True
-                            GoTo lEnd
-                        End If
-                    Next
-                    For Each line As Line In lines
-                        If line.Contains(curPt) Then
-                            lines.Remove(line)
-                            deleted = True
-                            GoTo lEnd
-                        End If
-                    Next
-                    For Each line As Line In selLines
-                        If line.Contains(curPt) Then
-                            deleted = True
-                            selLines.Remove(line)
-                            GoTo lEnd
-                        End If
-                    Next
-                    For Each pt As PointF In points
-                        If CalculateDistance(curPt, pt) <= 2 Then
-                            points.Remove(pt)
-                            RemoveWorkingPoint(pt)
-                            deleted = True
-                            GoTo lEnd
-                        End If
-                    Next
-                    For Each pt As PointF In selPoints
-                        If CalculateDistance(curPt, pt) <= 2 Then
-                            selPoints.Remove(pt)
-                            RemoveWorkingPoint(pt)
-                            deleted = True
-                            GoTo lEnd
-                        End If
-                    Next
-lEnd:
-                    If deleted Then
+                    If DeleteElement(clickedPt) Then
                         DrawAll()
+                        Return
                     End If
+                Case "Max"
+                    maxSelected = True
+                Case "Min"
+                    minSelected = True
+                Case "Tangent"
+                    tangentSelected = True
+                Case "Perpendicular"
+                    perpendicularSelected = True
                 Case Else
             End Select
 
+            If selPoints.Count > 0 And selLines.Count > 0 Then
+                GetDistanceBetweenPointAndLine()
+            ElseIf selPoints.Count > 0 And selCircles.Count > 0 Then
+                GetDistanceBetweenCircleAndPoint()
+            ElseIf selCircles.Count > 1 Then
+                GetDistanceBetweenTwoCircles()
+            ElseIf selLines.Count > 1 Then
+                If item.Text = "Create Intersection Point" Then
+                    CreateIntersectionPointBetweenTwoLines()
+                ElseIf item.Text.Contains("Delta") Then
+                    GetAngleBetweenTwoLines(item.Text)
+                End If
+            End If
         End If
     End Sub
     Private Sub ShowContextMenu(point As Point)
         contextMenu = New ContextMenuStrip()
 
+        ' Menu items for measurement
         Dim mnMax As ToolStripMenuItem = New ToolStripMenuItem("Max", Nothing, AddressOf MenuItem_Clicked)
         Dim mnMin As ToolStripMenuItem = New ToolStripMenuItem("Min", Nothing, AddressOf MenuItem_Clicked)
         Dim mnTangent As ToolStripMenuItem = New ToolStripMenuItem("Tangent", Nothing, AddressOf MenuItem_Clicked)
@@ -185,36 +154,39 @@ lEnd:
         mnPerpendicular.Enabled = selPoints.Count > 0 And selLines.Count > 0
         Dim separator As New ToolStripSeparator()
         contextMenu.Items.Add(separator)
+        ' Menu items for calculation
+        If selLines.Count > 1 Then
+            Dim mnCreateIntersectionPoint As ToolStripMenuItem = New ToolStripMenuItem("Create Intersection Point", Nothing, AddressOf MenuItem_Clicked)
+            Dim mnCalculateAngle As ToolStripMenuItem = New ToolStripMenuItem("Calculate Angle", Nothing, AddressOf MenuItem_Clicked)
+            contextMenu.Items.Add(mnCreateIntersectionPoint)
+            Dim mn90Delta As ToolStripMenuItem = New ToolStripMenuItem("90- Delta", Nothing, AddressOf MenuItem_Clicked)
+            Dim mn180Delta As ToolStripMenuItem = New ToolStripMenuItem("180- Delta", Nothing, AddressOf MenuItem_Clicked)
+            Dim mn270Delta As ToolStripMenuItem = New ToolStripMenuItem("270- Delta", Nothing, AddressOf MenuItem_Clicked)
+            Dim mn360Delta As ToolStripMenuItem = New ToolStripMenuItem("360- Delta", Nothing, AddressOf MenuItem_Clicked)
+            mnCalculateAngle.DropDownItems.Add(mn90Delta)
+            mnCalculateAngle.DropDownItems.Add(mn180Delta)
+            mnCalculateAngle.DropDownItems.Add(mn270Delta)
+            mnCalculateAngle.DropDownItems.Add(mn360Delta)
+            contextMenu.Items.Add(mnCalculateAngle)
+
+            contextMenu.Items.Add(separator)
+        End If
         Dim mnDelete As ToolStripMenuItem = New ToolStripMenuItem("Delete", Nothing, AddressOf MenuItem_Clicked)
         contextMenu.Items.Add(mnDelete)
 
         contextMenu.Show(picView, point)
     End Sub
 
-    Private Sub RemoveWorkingPoint(ByRef point As PointF)
-        RemovePoint(point, outlierPoints)
-        For Each row As DataGridViewRow In dataGrid.Rows
-            If row.Index >= dataGrid.Rows.Count - 1 Then Exit For
-            Try
-                Dim x As Single, y As Single
-                If Single.TryParse(row.Cells(0).Value.ToString(), x) AndAlso Single.TryParse(row.Cells(1).Value.ToString(), y) Then
-                    If point.X = x And point.Y = y Then dataGrid.Rows.Remove(row)
-                End If
-            Catch ex As Exception
-            End Try
-        Next
-    End Sub
-
     Private Sub picView_MouseClick(sender As Object, e As MouseEventArgs) Handles picView.MouseClick
-        curPt = New PointF(e.Location.X * zoomFactor, e.Location.Y * zoomFactor)
-
+        clickedPt = New PointF(e.Location.X * zoomFactor, e.Location.Y * zoomFactor)
+        Dim threshold As Single = 2
         If e.Button = MouseButtons.Right Then
             ShowContextMenu(e.Location)
             Exit Sub
         End If
 
         For Each circle As Circle In circles
-            If Math.Abs(CalculateDistance(curPt, circle.center) - circle.radius) <= 2 Then
+            If Math.Abs(CalculateDistance(clickedPt, circle.center) - circle.radius) <= threshold Then
                 If selLines.Count = 0 And (selPoints.Count + selCircles.Count) < 2 Then
                     selCircles.Add(circle)
                     circles.Remove(circle)
@@ -226,7 +198,7 @@ lEnd:
         Next
 
         For Each circle As Circle In selCircles
-            If Math.Abs(CalculateDistance(curPt, circle.center) - circle.radius) <= 2 Then
+            If Math.Abs(CalculateDistance(clickedPt, circle.center) - circle.radius) <= threshold Then
                 circles.Add(circle)
                 selCircles.Remove(circle)
                 GoTo lEnd
@@ -234,12 +206,12 @@ lEnd:
         Next
 
         For Each line As Line In lines
-            If line.Contains(curPt) Then
+            If line.Contains(clickedPt, threshold) Then
                 If selCircles.Count = 0 And selPoints.Count < 2 And selLines.Count < 2 Then
                     selLines.Add(line)
                     lines.Remove(line)
                 Else
-                    MessageBox.Show("It is possible only to select one line and one point, two lines or two lines and one point.",
+                    MessageBox.Show("It is possible only to select one line and one point or two lines.",
                                     "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End If
                 GoTo lEnd
@@ -247,7 +219,7 @@ lEnd:
         Next
 
         For Each line As Line In selLines
-            If line.Contains(curPt) Then
+            If line.Contains(clickedPt, threshold) Then
                 lines.Add(line)
                 selLines.Remove(line)
                 GoTo lEnd
@@ -255,12 +227,12 @@ lEnd:
         Next
 
         For Each pt As PointF In points
-            If CalculateDistance(curPt, pt) <= 2 Then
-                If selPoints.Count = 0 And selLines.Count < 3 And selCircles.Count < 2 Then
+            If CalculateDistance(clickedPt, pt) <= threshold Then
+                If selPoints.Count = 0 And (selLines.Count + selCircles.Count) < 2 Then
                     selPoints.Add(pt)
                     points.Remove(pt)
                 Else
-                    MessageBox.Show("It is possible only to select one line and one point, one circle and one point or two lines and one point.",
+                    MessageBox.Show("It is possible only to select one line and one point or one circle and one point",
                                     "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End If
                 GoTo lEnd
@@ -268,7 +240,7 @@ lEnd:
         Next
 
         For Each pt As PointF In selPoints
-            If CalculateDistance(curPt, pt) <= 2 Then
+            If CalculateDistance(clickedPt, pt) <= threshold Then
                 points.Add(pt)
                 selPoints.Remove(pt)
                 GoTo lEnd
@@ -321,13 +293,13 @@ lEnd:
 
         ' Draw the found elements
         If curMode = GeometryType.CircleAndPoint And selCircles.Count > 0 And selPoints.Count > 0 Then
-            If radioMin.Checked Then
+            If minSelected Then
                 DrawPoint(g, activePoint, brshRed, brshGreen, fontNormal, 3, "Min")
             End If
-            If radioMax.Checked Then
+            If maxSelected Then
                 DrawPoint(g, activePoint, brshRed, brshGreen, fontNormal, 3, "Max")
             End If
-            If radioTangent.Checked Then
+            If tangentSelected Then
                 g.DrawLine(Pens.Red, ptTangents(0), selPoints(0))
                 g.DrawLine(Pens.Blue, ptTangents(0), selCircles(0).center)
                 DrawPoint(g, ptTangents(0), brshRed, brshGreen, fontNormal, 2, "Tangent 1")
@@ -340,7 +312,7 @@ lEnd:
         If curMode = GeometryType.PointAndLine And selPoints.Count > 0 And selLines.Count > 0 Then
             g.DrawLine(Pens.Red, activePoint, selPoints(0))
             DrawPoint(g, activePoint, brshBlue, brshBlack, fontNormal)
-            If radioPerpendicular.Checked Then
+            If perpendicularSelected Then
                 If activePoint.X >= selLines(0).startPt.X And activePoint.X >= selLines(0).endPt.X Then
                     g.DrawLine(Pens.Magenta, activePoint, If(selLines(0).startPt.X > selLines(0).endPt.X, selLines(0).startPt, selLines(0).endPt))
                 ElseIf activePoint.X <= selLines(0).startPt.X And activePoint.X <= selLines(0).endPt.X Then
@@ -358,43 +330,7 @@ lEnd:
         End If
     End Sub
 
-    Private Sub btnCreateIntersectionPointBetweenTwoLines_Click(sender As Object, e As EventArgs) Handles btnCreateIntersectionPointBetweenTwoLines.Click
-        If selLines.Count < 2 Then
-            MessageBox.Show("Two lines are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            Return
-        End If
-        curMode = GeometryType.IntersectionBetweenTwoLines
-
-        activePoint = GetIntersection(selLines(0), selLines(1))
-        points.Add(activePoint)
-        DrawAll()
-    End Sub
-    Private Sub btnGetDistanceBetweenTwoCircles_Click(sender As Object, e As EventArgs) Handles btnGetDistanceBetweenTwoCircles.Click
-        If selCircles.Count < 2 Then
-            MessageBox.Show("Two circles are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            Return
-        End If
-        curMode = GeometryType.CircleAndCircle
-        Dim centerDistance As Single = CalculateDistance(selCircles(0).center, selCircles(1).center)
-        Dim distance As Single = selCircles(0).radius + selCircles(1).radius
-
-        If radioMax.Checked Then
-            curDistance = centerDistance + (selCircles(0).radius + selCircles(1).radius)
-            txtResult.Text = "Max distance between two circle:" + curDistance.ToString
-        ElseIf radioMin.Checked Then
-            curDistance = Math.Abs(centerDistance - (selCircles(0).radius + selCircles(1).radius))
-            txtResult.Text = "Min distance between two circle:" + curDistance.ToString
-        ElseIf radioTangent.Checked Then
-            Dim externalDistance As Single = Math.Sqrt((selCircles(0).radius - selCircles(1).radius) ^ 2 + centerDistance ^ 2)
-            curDistance = If(centerDistance < distance, externalDistance,
-                    Math.Min(externalDistance, Math.Sqrt(centerDistance ^ 2 - (selCircles(0).radius + selCircles(1).radius) ^ 2)))
-            txtResult.Text = "Tangent distance between two circle:" + curDistance.ToString
-        End If
-
-        DrawAll()
-    End Sub
-
-    Private Sub btnGetDistanceBetweenPointAndLine_Click(sender As Object, e As EventArgs) Handles btnGetDistanceBetweenPointAndLine.Click
+    Private Sub GetDistanceBetweenPointAndLine()
         If selLines.Count = 0 Or selPoints.Count = 0 Then
             MessageBox.Show("One line and one point are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Return
@@ -404,35 +340,27 @@ lEnd:
         Dim distance1 As Single = CalculateDistance(selLines(0).startPt, selPoints(0))
         Dim distance2 As Single = CalculateDistance(selLines(0).endPt, selPoints(0))
 
-        If radioMax.Checked Then
+        If maxSelected Then
             activePoint = If(distance1 > distance2, selLines(0).startPt, selLines(0).endPt)
-            txtResult.Text = "Max distance between circle and point:" + If(distance1 > distance2, distance1, distance2).ToString
+            dgvResults.Rows.Add("Point and Line", "Max", If(distance1 > distance2, distance1, distance2).ToString)
         End If
 
-        If radioMin.Checked Then
+        If minSelected Then
             activePoint = If(distance1 < distance2, selLines(0).startPt, selLines(0).endPt)
-            txtResult.Text = "Min distance between circle and point:" + If(distance1 < distance2, distance1, distance2).ToString
+            dgvResults.Rows.Add("Point and Line", "Min", If(distance1 < distance2, distance1, distance2).ToString)
         End If
 
-        If radioPerpendicular.Checked Then
+        If perpendicularSelected Then
             Dim xNearest As Double = If(selLines(0).IsVertical(), selLines(0).startPt.X,
                 (selPoints(0).X + selLines(0).slope * selPoints(0).Y - selLines(0).slope * selLines(0).intercept) / (selLines(0).slope ^ 2 + 1))
             Dim yNearest As Double = If(selLines(0).IsVertical(), selPoints(0).Y, selLines(0).slope * xNearest + selLines(0).intercept)
             activePoint = New Point(xNearest, yNearest)
-            txtResult.Text = "Perpendicular distance between circle and point:" + CalculateDistance(activePoint, selPoints(0)).ToString
+            dgvResults.Rows.Add("Point and Line", "Perpendicular", CalculateDistance(activePoint, selPoints(0)).ToString)
         End If
         DrawAll()
     End Sub
-    Private Sub btnGetAngleBetweenTwoLines_Click(sender As Object, e As EventArgs) Handles btnGetAngleBetweenTwoLines.Click
-        If selLines.Count < 2 Then
-            MessageBox.Show("Two lines are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            Return
-        End If
-        curMode = GeometryType.AngleBetweenTwoLines
-        txtResult.Text = "Angle between two selLines: " + CalculateAngleBetweenLines(selLines(0), selLines(1)).ToString + " degree"
-    End Sub
 
-    Private Sub btnGetDistanceBetweenCircleAndPoint_Click(sender As Object, e As EventArgs) Handles btnGetDistanceBetweenCircleAndPoint.Click
+    Private Sub GetDistanceBetweenCircleAndPoint()
         If selCircles.Count = 0 Or selPoints.Count = 0 Then
             MessageBox.Show("One circle and one point are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Return
@@ -440,19 +368,19 @@ lEnd:
 
         curMode = GeometryType.CircleAndPoint
         Dim maxPoint As PointF, minPoint As PointF
-        If radioMin.Checked Or radioMax.Checked Then
+        If minSelected Or maxSelected Then
             FindPointsOnCircle(selCircles(0), selPoints(0), maxPoint, minPoint)
         End If
 
-        If radioMin.Checked Then
+        If minSelected Then
             activePoint = minPoint
-            txtResult.Text = "Min distance between circle and point:" + CalculateDistance(selPoints(0), activePoint).ToString
+            dgvResults.Rows.Add("Circle and Point", "Min", CalculateDistance(selPoints(0), activePoint).ToString)
         End If
-        If radioMax.Checked Then
+        If maxSelected Then
             activePoint = maxPoint
-            txtResult.Text = "Max distance between circle and point:" + CalculateDistance(selPoints(0), activePoint).ToString
+            dgvResults.Rows.Add("Circle and Point", "Max", CalculateDistance(selPoints(0), activePoint).ToString)
         End If
-        If radioTangent.Checked Then
+        If tangentSelected Then
             Dim distance As Single = CalculateDistance(selCircles(0).center, selPoints(0))
             If distance < selCircles(0).radius Then
                 MessageBox.Show("Tangent can be calculated for the point in circle.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
@@ -461,9 +389,61 @@ lEnd:
             Dim tangentDistance = Math.Sqrt(distance ^ 2 - selCircles(0).radius ^ 2)
             ptTangents = FindTangentPoints(selCircles(0), selPoints(0))
 
-            txtResult.Text = "Tangent distance between circle and point:" + tangentDistance.ToString
+            dgvResults.Rows.Add("Circle and Point", "Tangent", tangentDistance.ToString)
         End If
 
+        DrawAll()
+    End Sub
+
+    Private Sub GetDistanceBetweenTwoCircles()
+        If selCircles.Count < 2 Then
+            MessageBox.Show("Two circles are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+        curMode = GeometryType.CircleAndCircle
+        Dim centerDistance As Single = CalculateDistance(selCircles(0).center, selCircles(1).center)
+        Dim distance As Single = selCircles(0).radius + selCircles(1).radius
+
+        If maxSelected Then
+            curDistance = centerDistance + (selCircles(0).radius + selCircles(1).radius)
+            dgvResults.Rows.Add("Circle and Circle", "Max", curDistance.ToString)
+        ElseIf minSelected Then
+            curDistance = Math.Abs(centerDistance - (selCircles(0).radius + selCircles(1).radius))
+            dgvResults.Rows.Add("Circle and Circle", "Min", curDistance.ToString)
+        ElseIf tangentSelected Then
+            Dim externalDistance As Single = Math.Sqrt((selCircles(0).radius - selCircles(1).radius) ^ 2 + centerDistance ^ 2)
+            curDistance = If(centerDistance < distance, externalDistance,
+                    Math.Min(externalDistance, Math.Sqrt(centerDistance ^ 2 - (selCircles(0).radius + selCircles(1).radius) ^ 2)))
+            dgvResults.Rows.Add("Circle and Circle", "Tangent", curDistance.ToString)
+        End If
+
+        DrawAll()
+    End Sub
+
+    Private Sub GetAngleBetweenTwoLines(menuTitle As String)
+        If selLines.Count < 2 Then
+            MessageBox.Show("Two lines are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+        Dim parts As String() = menuTitle.Split("-"c)
+        Dim delta As Integer = Integer.Parse(parts(0))
+        curMode = GeometryType.AngleBetweenTwoLines
+        dgvResults.Rows.Add("Line and Line", "Degree with delta(" + delta.ToString + ")",
+                           (delta - CalculateAngleBetweenLines(selLines(0), selLines(1))).ToString)
+    End Sub
+
+    Private Sub CreateIntersectionPointBetweenTwoLines()
+        If selLines.Count < 2 Then
+            MessageBox.Show("Two lines are needed.", "Notice", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+        curMode = GeometryType.IntersectionBetweenTwoLines
+
+        activePoint = GetIntersection(selLines(0), selLines(1))
+        points.Add(activePoint)
+        dgvPoints.Rows.Add(activePoint.X.ToString, activePoint.Y.ToString, "")
+
+        UpdatePointsFromDataGrid()
         DrawAll()
     End Sub
 
@@ -579,7 +559,7 @@ lEnd:
                     End If
                 Next
                 points.Add(newPt)
-                dataGrid.Rows.Add(x.ToString, y.ToString, "")
+                dgvPoints.Rows.Add(x.ToString, y.ToString, "")
             End If
         Catch ex As Exception
         End Try
@@ -600,8 +580,8 @@ lEnd:
         foundCircle = CircleFit.FitCircle(outlierPoints)
 
         ' Calculate the minimum distance of each point to circle
-        For Each row As DataGridViewRow In dataGrid.Rows
-            If row.Index >= dataGrid.Rows.Count - 1 Then Exit For
+        For Each row As DataGridViewRow In dgvPoints.Rows
+            If row.Index >= dgvPoints.Rows.Count - 1 Then Exit For
 
             Dim pt As PointF = outlierPoints(row.Index)
             row.Cells(2).Value = CSng(Math.Abs(Math.Sqrt((pt.X - foundCircle.center.X) * (pt.X - foundCircle.center.X) +
@@ -642,8 +622,8 @@ lEnd:
 
 
         ' Calculate the minimum distance of each point to circle
-        For Each row As DataGridViewRow In dataGrid.Rows
-            If row.Index >= dataGrid.Rows.Count - 1 Then
+        For Each row As DataGridViewRow In dgvPoints.Rows
+            If row.Index >= dgvPoints.Rows.Count - 1 Then
                 Exit For
             End If
 
@@ -666,17 +646,21 @@ lEnd:
         DrawAll()
     End Sub
     Private Sub ClearWorkingData()
-        dataGrid.Rows.Clear()
+        dgvPoints.Rows.Clear()
         outlierPoints.Clear()
         points.Clear()
         selPoints.Clear()
         curMode = GeometryType.NA
-        txtResult.Text = ""
+
+        minSelected = False
+        maxSelected = False
+        tangentSelected = False
+        perpendicularSelected = False
     End Sub
     Private Sub UpdatePointsFromDataGrid()
         outlierPoints.Clear()
-        For Each row As DataGridViewRow In dataGrid.Rows
-            If row.Index >= dataGrid.Rows.Count - 1 Then Exit For
+        For Each row As DataGridViewRow In dgvPoints.Rows
+            If row.Index >= dgvPoints.Rows.Count - 1 Then Exit For
             Try
                 Dim x As Single, y As Single
                 If Single.TryParse(row.Cells(0).Value.ToString(), x) AndAlso Single.TryParse(row.Cells(1).Value.ToString(), y) Then
@@ -686,6 +670,60 @@ lEnd:
             End Try
         Next
     End Sub
+    Private Sub RemoveWorkingPoint(ByRef point As PointF)
+        RemovePoint(point, outlierPoints)
+        For Each row As DataGridViewRow In dgvPoints.Rows
+            If row.Index >= dgvPoints.Rows.Count - 1 Then Exit For
+            Try
+                Dim x As Single, y As Single
+                If Single.TryParse(row.Cells(0).Value.ToString(), x) AndAlso Single.TryParse(row.Cells(1).Value.ToString(), y) Then
+                    If point.X = x And point.Y = y Then dgvPoints.Rows.Remove(row)
+                End If
+            Catch ex As Exception
+            End Try
+        Next
+    End Sub
+    Private Function DeleteElement(ByRef point As PointF) As Boolean
+        For Each circle As Circle In circles
+            If Math.Abs(CalculateDistance(point, circle.center) - circle.radius) <= 2 Then
+                circles.Remove(circle)
+                Return True
+            End If
+        Next
+        For Each circle As Circle In selCircles
+            If Math.Abs(CalculateDistance(point, circle.center) - circle.radius) <= 2 Then
+                selCircles.Remove(circle)
+                Return True
+            End If
+        Next
+        For Each line As Line In lines
+            If line.Contains(point) Then
+                lines.Remove(line)
+                Return True
+            End If
+        Next
+        For Each line As Line In selLines
+            If line.Contains(point) Then
+                selLines.Remove(line)
+                Return True
+            End If
+        Next
+        For Each pt As PointF In points
+            If CalculateDistance(point, pt) <= 2 Then
+                points.Remove(pt)
+                RemoveWorkingPoint(pt)
+                Return True
+            End If
+        Next
+        For Each pt As PointF In selPoints
+            If CalculateDistance(point, pt) <= 2 Then
+                selPoints.Remove(pt)
+                RemoveWorkingPoint(pt)
+                Return True
+            End If
+        Next
+        Return False
+    End Function
 
     Private Sub btnZoomIn_Click(sender As Object, e As EventArgs) Handles btnZoomIn.Click
         zoomFactor *= 0.8
