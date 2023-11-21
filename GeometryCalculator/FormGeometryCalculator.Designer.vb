@@ -25,7 +25,7 @@ Partial Class FormGeometryCalculator
         picView = New PictureBox()
         txtResult = New TextBox()
         panelGeometryCalculator = New Panel()
-        btnGetDistanceBetweenPointAndIntersection = New Button()
+        btnCreateIntersectionPointBetweenTwoLines = New Button()
         btnClearAll = New Button()
         btnGetDistanceBetweenTwoCircles = New Button()
         grpMeasureType = New GroupBox()
@@ -48,6 +48,10 @@ Partial Class FormGeometryCalculator
         Label1 = New Label()
         txtCurrentY = New TextBox()
         txtCurrentX = New TextBox()
+        btnZoomIn = New Button()
+        btnZoomOut = New Button()
+        btnSetDefaultZoom = New Button()
+        lblCurrentZoom = New Label()
         CType(picView, ComponentModel.ISupportInitialize).BeginInit()
         panelGeometryCalculator.SuspendLayout()
         grpMeasureType.SuspendLayout()
@@ -75,7 +79,7 @@ Partial Class FormGeometryCalculator
         ' 
         ' panelGeometryCalculator
         ' 
-        panelGeometryCalculator.Controls.Add(btnGetDistanceBetweenPointAndIntersection)
+        panelGeometryCalculator.Controls.Add(btnCreateIntersectionPointBetweenTwoLines)
         panelGeometryCalculator.Controls.Add(btnClearAll)
         panelGeometryCalculator.Controls.Add(btnGetDistanceBetweenTwoCircles)
         panelGeometryCalculator.Controls.Add(grpMeasureType)
@@ -84,23 +88,23 @@ Partial Class FormGeometryCalculator
         panelGeometryCalculator.Controls.Add(btnGetAngleBetweenTwoLines)
         panelGeometryCalculator.Location = New Point(669, 73)
         panelGeometryCalculator.Name = "panelGeometryCalculator"
-        panelGeometryCalculator.Size = New Size(280, 473)
+        panelGeometryCalculator.Size = New Size(280, 369)
         panelGeometryCalculator.TabIndex = 8
         ' 
-        ' btnGetDistanceBetweenPointAndIntersection
+        ' btnCreateIntersectionPointBetweenTwoLines
         ' 
-        btnGetDistanceBetweenPointAndIntersection.Font = New Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point)
-        btnGetDistanceBetweenPointAndIntersection.Location = New Point(4, 435)
-        btnGetDistanceBetweenPointAndIntersection.Name = "btnGetDistanceBetweenPointAndIntersection"
-        btnGetDistanceBetweenPointAndIntersection.Size = New Size(266, 38)
-        btnGetDistanceBetweenPointAndIntersection.TabIndex = 7
-        btnGetDistanceBetweenPointAndIntersection.Text = "Get Distance between Point and Intersection of Two Lines"
-        btnGetDistanceBetweenPointAndIntersection.UseVisualStyleBackColor = True
+        btnCreateIntersectionPointBetweenTwoLines.Font = New Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point)
+        btnCreateIntersectionPointBetweenTwoLines.Location = New Point(11, 327)
+        btnCreateIntersectionPointBetweenTwoLines.Name = "btnCreateIntersectionPointBetweenTwoLines"
+        btnCreateIntersectionPointBetweenTwoLines.Size = New Size(266, 38)
+        btnCreateIntersectionPointBetweenTwoLines.TabIndex = 7
+        btnCreateIntersectionPointBetweenTwoLines.Text = "Create Intersection Point between Two Lines"
+        btnCreateIntersectionPointBetweenTwoLines.UseVisualStyleBackColor = True
         ' 
         ' btnClearAll
         ' 
         btnClearAll.Font = New Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point)
-        btnClearAll.Location = New Point(4, 114)
+        btnClearAll.Location = New Point(11, 6)
         btnClearAll.Name = "btnClearAll"
         btnClearAll.Size = New Size(266, 34)
         btnClearAll.TabIndex = 2
@@ -110,7 +114,7 @@ Partial Class FormGeometryCalculator
         ' btnGetDistanceBetweenTwoCircles
         ' 
         btnGetDistanceBetweenTwoCircles.Font = New Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point)
-        btnGetDistanceBetweenTwoCircles.Location = New Point(4, 396)
+        btnGetDistanceBetweenTwoCircles.Location = New Point(11, 288)
         btnGetDistanceBetweenTwoCircles.Name = "btnGetDistanceBetweenTwoCircles"
         btnGetDistanceBetweenTwoCircles.Size = New Size(266, 34)
         btnGetDistanceBetweenTwoCircles.TabIndex = 6
@@ -123,7 +127,7 @@ Partial Class FormGeometryCalculator
         grpMeasureType.Controls.Add(radioTangent)
         grpMeasureType.Controls.Add(radioMin)
         grpMeasureType.Controls.Add(radioMax)
-        grpMeasureType.Location = New Point(4, 154)
+        grpMeasureType.Location = New Point(11, 46)
         grpMeasureType.Name = "grpMeasureType"
         grpMeasureType.Size = New Size(266, 122)
         grpMeasureType.TabIndex = 1
@@ -175,7 +179,7 @@ Partial Class FormGeometryCalculator
         ' btnGetDistanceBetweenPointAndLine
         ' 
         btnGetDistanceBetweenPointAndLine.Font = New Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point)
-        btnGetDistanceBetweenPointAndLine.Location = New Point(4, 358)
+        btnGetDistanceBetweenPointAndLine.Location = New Point(11, 250)
         btnGetDistanceBetweenPointAndLine.Name = "btnGetDistanceBetweenPointAndLine"
         btnGetDistanceBetweenPointAndLine.Size = New Size(266, 34)
         btnGetDistanceBetweenPointAndLine.TabIndex = 5
@@ -185,7 +189,7 @@ Partial Class FormGeometryCalculator
         ' btnGetDistanceBetweenCircleAndPoint
         ' 
         btnGetDistanceBetweenCircleAndPoint.Font = New Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point)
-        btnGetDistanceBetweenCircleAndPoint.Location = New Point(4, 280)
+        btnGetDistanceBetweenCircleAndPoint.Location = New Point(11, 172)
         btnGetDistanceBetweenCircleAndPoint.Name = "btnGetDistanceBetweenCircleAndPoint"
         btnGetDistanceBetweenCircleAndPoint.Size = New Size(266, 34)
         btnGetDistanceBetweenCircleAndPoint.TabIndex = 3
@@ -195,7 +199,7 @@ Partial Class FormGeometryCalculator
         ' btnGetAngleBetweenTwoLines
         ' 
         btnGetAngleBetweenTwoLines.Font = New Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point)
-        btnGetAngleBetweenTwoLines.Location = New Point(4, 319)
+        btnGetAngleBetweenTwoLines.Location = New Point(11, 211)
         btnGetAngleBetweenTwoLines.Name = "btnGetAngleBetweenTwoLines"
         btnGetAngleBetweenTwoLines.Size = New Size(266, 34)
         btnGetAngleBetweenTwoLines.TabIndex = 3
@@ -319,11 +323,54 @@ Partial Class FormGeometryCalculator
         txtCurrentX.Size = New Size(100, 23)
         txtCurrentX.TabIndex = 13
         ' 
+        ' btnZoomIn
+        ' 
+        btnZoomIn.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point)
+        btnZoomIn.Location = New Point(741, 22)
+        btnZoomIn.Name = "btnZoomIn"
+        btnZoomIn.Size = New Size(31, 30)
+        btnZoomIn.TabIndex = 14
+        btnZoomIn.Text = "+"
+        btnZoomIn.UseVisualStyleBackColor = True
+        ' 
+        ' btnZoomOut
+        ' 
+        btnZoomOut.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point)
+        btnZoomOut.Location = New Point(778, 22)
+        btnZoomOut.Name = "btnZoomOut"
+        btnZoomOut.Size = New Size(31, 30)
+        btnZoomOut.TabIndex = 14
+        btnZoomOut.Text = "-"
+        btnZoomOut.UseVisualStyleBackColor = True
+        ' 
+        ' btnSetDefaultZoom
+        ' 
+        btnSetDefaultZoom.Location = New Point(817, 22)
+        btnSetDefaultZoom.Name = "btnSetDefaultZoom"
+        btnSetDefaultZoom.Size = New Size(53, 30)
+        btnSetDefaultZoom.TabIndex = 15
+        btnSetDefaultZoom.Text = "100%"
+        btnSetDefaultZoom.UseVisualStyleBackColor = True
+        ' 
+        ' lblCurrentZoom
+        ' 
+        lblCurrentZoom.AutoSize = True
+        lblCurrentZoom.BackColor = Color.White
+        lblCurrentZoom.Location = New Point(699, 30)
+        lblCurrentZoom.Name = "lblCurrentZoom"
+        lblCurrentZoom.Size = New Size(35, 15)
+        lblCurrentZoom.TabIndex = 16
+        lblCurrentZoom.Text = "100%"
+        ' 
         ' FormGeometryCalculator
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(1300, 551)
+        Controls.Add(lblCurrentZoom)
+        Controls.Add(btnSetDefaultZoom)
+        Controls.Add(btnZoomOut)
+        Controls.Add(btnZoomIn)
         Controls.Add(panelOutlierFinder)
         Controls.Add(panelGeometryCalculator)
         Controls.Add(txtResult)
@@ -345,7 +392,7 @@ Partial Class FormGeometryCalculator
     Friend WithEvents picView As PictureBox
     Friend WithEvents txtResult As TextBox
     Friend WithEvents panelGeometryCalculator As Panel
-    Friend WithEvents btnGetDistanceBetweenPointAndIntersection As Button
+    Friend WithEvents btnCreateIntersectionPointBetweenTwoLines As Button
     Friend WithEvents btnClearAll As Button
     Friend WithEvents btnGetDistanceBetweenTwoCircles As Button
     Friend WithEvents grpMeasureType As GroupBox
@@ -368,5 +415,9 @@ Partial Class FormGeometryCalculator
     Friend WithEvents txtCurrentX As TextBox
     Friend WithEvents btnAddFoundLine As Button
     Friend WithEvents btnAddFoundCircle As Button
+    Friend WithEvents btnZoomIn As Button
+    Friend WithEvents btnZoomOut As Button
+    Friend WithEvents btnSetDefaultZoom As Button
+    Friend WithEvents lblCurrentZoom As Label
 
 End Class

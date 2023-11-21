@@ -5,29 +5,48 @@ Imports System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel
 Imports MathNet.Numerics.LinearAlgebra
 
 Module GeometryCalculator
-    Public Sub DrawPoint(ByRef g As Graphics, pt As PointF, ByRef brhPoint As Brush, ByRef brhString As Brush, ByRef font As Font, Optional sz As Integer = 2, Optional suffix As String = "")
-        g.FillEllipse(brhPoint, CInt(pt.X - sz), CInt(pt.Y - sz), sz * 2, sz * 2)
-        g.DrawString(suffix + "(" + pt.X.ToString + ", " + pt.Y.ToString + ")", font, brhString, pt.X + 5, pt.Y + 5)
+    Public Sub RemovePoint(ByRef point As PointF, ByRef points As List(Of PointF))
+        For Each pt As PointF In points
+            If pt.X = point.X And pt.Y = point.Y Then
+                points.Remove(pt)
+                Exit Sub
+            End If
+        Next
+    End Sub
+    Public Sub DrawPoint(ByRef g As Graphics, pt As PointF, ByRef brshPoint As Brush, ByRef brshString As Brush, ByRef font As Font, Optional sz As Integer = 2, Optional suffix As String = "")
+        g.FillEllipse(brshPoint, CInt(pt.X - sz), CInt(pt.Y - sz), sz * 2, sz * 2)
+        g.DrawString(suffix + "(" + pt.X.ToString + ", " + pt.Y.ToString + ")", font, brshString, pt.X + 5, pt.Y + 5)
     End Sub
 
     Public Function GetIntersection(ByRef line1 As Line, ByRef line2 As Line) As PointF
+        If line1.IsVertical Then
+            Return New PointF(line1.startPt.X, line1.startPt.X * line2.slope + line2.intercept)
+        End If
+
+        If line2.IsVertical Then
+            Return New PointF(line2.startPt.X, line2.startPt.X * line1.slope + line1.intercept)
+        End If
+
         ' Calculate the x-coordinate of the intersection point
         Dim x As Double = (line2.intercept - line1.intercept) / (line1.slope - line2.slope)
 
         ' Use the x-coordinate to calculate the y-coordinate
         Dim y As Double = line1.slope * x + line1.intercept
-
         Return New PointF(x, y)
     End Function
 
     ' Function to calculate the angle between two lines
     Public Function CalculateAngleBetweenLines(ByRef line1 As Line, ByRef line2 As Line) As Single
         ' Calculate slopes
-        Dim slope1 As Double = line1.slope
-        Dim slope2 As Double = line2.slope
+        Dim slope1 As Double = If(line1.IsVertical, 0, line1.slope)
+        Dim slope2 As Double = If(line2.IsVertical, 0, line2.slope)
 
         ' Calculate the angle using arctangent
         Dim angle As Single = Math.Atan(Math.Abs((slope2 - slope1) / (1 + slope1 * slope2)))
+
+        If (line1.IsVertical And Not line2.IsVertical) Or (Not line1.IsVertical And line2.IsVertical) Then
+            angle = Math.PI / 2 - angle
+        End If
 
         ' Convert the angle from radians to degrees
         angle = angle * (180 / Math.PI)
@@ -116,7 +135,7 @@ Public Class CircleFit
 End Class
 
 Public Class TrendLineFinder
-    Public Shared Function Calculate(ByVal points As List(Of PointF)) As Line
+    Public Shared Function Calculate(ByVal points As List(Of PointF), limitX As Single, limitY As Single) As Line
         If points Is Nothing OrElse points.Count < 2 Then
             Return Nothing
         End If
@@ -124,19 +143,12 @@ Public Class TrendLineFinder
         Dim n As Integer = points.Count
         Dim sumX As Double = 0, sumY As Double = 0
         Dim sumXY As Double = 0, sumX2 As Double = 0
-        Dim minX As Double = Double.MaxValue, maxX As Double = Double.MinValue
-        Dim minY As Double = Double.MaxValue, maxY As Double = Double.MinValue
 
         For Each point In points
             sumX += point.X
             sumY += point.Y
             sumXY += point.X * point.Y
             sumX2 += point.X * point.X
-            If point.X > maxX Then maxX = point.X
-            If point.X < minX Then minX = point.X
-
-            If point.Y > maxY Then maxY = point.Y
-            If point.Y < minY Then minY = point.Y
         Next
 
         Dim t As Double = (n * sumX2 - sumX * sumX)
@@ -144,8 +156,10 @@ Public Class TrendLineFinder
         Dim Intercept As Double = (sumY - Slope * sumX) / n
 
         Dim ln As Line = New Line With {.slope = Slope, .intercept = Intercept}
-        ln.startPt = New PointF(minX, If(ln.IsVertical(), minY, minX * Slope + Intercept))
-        ln.endPt = New PointF(maxX, If(ln.IsVertical(), maxY, maxX * Slope + Intercept))
+        Dim startX As Single = If(ln.IsVertical(), points(0).X, 0)
+        Dim endX As Single = If(ln.IsVertical(), points(0).X, limitX)
+        ln.startPt = New PointF(startX, If(ln.IsVertical(), 0, startX * Slope + Intercept))
+        ln.endPt = New PointF(endX, If(ln.IsVertical(), limitY, endX * Slope + Intercept))
         Return ln
     End Function
 End Class
@@ -215,8 +229,8 @@ End Class
 Public Enum GeometryType
     NA
     CircleAndPoint
-    LineAndLine
+    AngleBetweenTwoLines
     PointAndLine
     CircleAndCircle
-    PointAndTwoLines
+    IntersectionBetweenTwoLines
 End Enum

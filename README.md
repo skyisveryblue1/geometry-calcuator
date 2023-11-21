@@ -23,7 +23,7 @@ VB.NET app to indentify the outliers using a set of XY coordinates and draw it.
 -Find/draw the trend line from X-Y coordinates.
 -Identify outliers in the data by using the found line.
 
-# Incoporate Geometry Calculator and Outlier Finder
+# Incorporate Geometry Calculator and Outlier Finder
 
 1.	Make the project MDI so that I can add more forms, in my side. 
 2.	Increase the size of the picture box to 1000*750
