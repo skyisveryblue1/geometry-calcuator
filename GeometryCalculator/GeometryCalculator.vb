@@ -13,10 +13,6 @@ Module GeometryCalculator
             End If
         Next
     End Sub
-    Public Sub DrawPoint(ByRef g As Graphics, pt As PointF, ByRef brshPoint As Brush, ByRef brshString As Brush, ByRef font As Font, Optional sz As Integer = 2, Optional suffix As String = "")
-        g.FillEllipse(brshPoint, CInt(pt.X - sz), CInt(pt.Y - sz), sz * 2, sz * 2)
-        g.DrawString(suffix + "(" + pt.X.ToString + ", " + pt.Y.ToString + ")", font, brshString, pt.X + 5, pt.Y + 5)
-    End Sub
 
     Public Function GetIntersection(ByRef line1 As Line, ByRef line2 As Line) As PointF
         If line1.IsVertical Then
@@ -122,20 +118,15 @@ Public Class CircleFit
         Dim x As Vector(Of Double) = A.Svd().Solve(B)
 
         ' Calculate circle parameters
-        Dim centerX As Double = x(0)
-        Dim centerY As Double = x(1)
-        Dim radius As Double = Math.Sqrt(centerX ^ 2 + centerY ^ 2 - x(2))
-        Dim pt As PointF
-        pt.X = x(0)
-        pt.Y = x(1)
-
-        Return New Circle With {.center = pt, .radius = CSng(radius)}
+        Dim radius As Double = Math.Sqrt(x(0) ^ 2 + x(1) ^ 2 - x(2))
+        Return New Circle(x(0), x(1), radius)
     End Function
 
 End Class
 
 Public Class TrendLineFinder
-    Public Shared Function Calculate(ByVal points As List(Of PointF), limitX As Single, limitY As Single) As Line
+    Public Shared Function Calculate(ByVal points As List(Of PointF),
+             limitStartX As Single, limitStartY As Single, limitEndX As Single, limitEndY As Single) As Line
         If points Is Nothing OrElse points.Count < 2 Then
             Return Nothing
         End If
@@ -156,10 +147,10 @@ Public Class TrendLineFinder
         Dim Intercept As Double = (sumY - Slope * sumX) / n
 
         Dim ln As Line = New Line With {.slope = Slope, .intercept = Intercept}
-        Dim startX As Single = If(ln.IsVertical(), points(0).X, 0)
-        Dim endX As Single = If(ln.IsVertical(), points(0).X, limitX)
-        ln.startPt = New PointF(startX, If(ln.IsVertical(), 0, startX * Slope + Intercept))
-        ln.endPt = New PointF(endX, If(ln.IsVertical(), limitY, endX * Slope + Intercept))
+        Dim startX As Single = If(ln.IsVertical(), points(0).X, limitStartX)
+        Dim endX As Single = If(ln.IsVertical(), points(0).X, limitEndX)
+        ln.startPt = New PointF(startX, If(ln.IsVertical(), limitStartY, startX * Slope + Intercept))
+        ln.endPt = New PointF(endX, If(ln.IsVertical(), limitEndY, endX * Slope + Intercept))
         Return ln
     End Function
 End Class
@@ -207,7 +198,7 @@ End Class
 
 Public Class Circle
     Public radius As Double
-    Public rc As Rectangle
+    Public rc As RectangleF
     Public center As PointF
 
     Public Sub New()
@@ -216,14 +207,20 @@ Public Class Circle
     Public Sub New(ByRef other As Circle)
         Me.radius = other.radius
         Me.center = New PointF(other.center)
-        Me.rc = New Rectangle(center.X - radius, center.Y - radius, 2 * radius, 2 * radius)
+        Me.rc = New RectangleF(center.X - radius, center.Y + radius, 2 * radius, 2 * radius)
+    End Sub
+
+    Public Sub New(cX As Single, cY As Single, radius As Single)
+        Me.radius = radius
+        Me.center = New PointF(cX, cY)
+        Me.rc = New RectangleF(cX - radius, cY + radius, 2 * radius, 2 * radius)
     End Sub
 
     Public Sub New(ByRef startPoint As Point, ByRef endPoint As Point)
         radius = Math.Sqrt((endPoint.X - startPoint.X) ^ 2 + (endPoint.Y - startPoint.Y) ^ 2)
         center.X = startPoint.X
         center.Y = startPoint.Y
-        rc = New Rectangle(center.X - radius, center.Y - radius, 2 * radius, 2 * radius)
+        rc = New RectangleF(center.X - radius, center.Y + radius, 2 * radius, 2 * radius)
     End Sub
 End Class
 Public Enum GeometryType

@@ -16,11 +16,11 @@ Public Class FormGeometryCalculator
     Dim fontNormal As New Font("Seoge UI", 8)
     Dim fontBig As New Font("Seoge UI", 14)
 
-    Dim outlierPoints As New List(Of PointF)
-
     Dim bufferBitmap As Bitmap
     Dim zoomFactor As Single = 1.0
 
+    Dim centerX As Single, centerY As Single
+    Dim outlierPoints As New List(Of PointF)
     Dim circles As New List(Of Circle), selCircles As New List(Of Circle)
     Dim lines As New List(Of Line), selLines As New List(Of Line)
     Dim points As New List(Of PointF), selPoints As New List(Of PointF)
@@ -47,16 +47,27 @@ Public Class FormGeometryCalculator
         ' This call is required by the designer.
         InitializeComponent()
 
+        ' Add any initialization after the InitializeComponent() call.
+
         picView.Width = 1000
         picView.Height = 750
+        centerX = picView.Width / 2
+        centerY = picView.Height / 2
 
-        panelOutlierFinder.Left = picView.Right + 10
+        hsbPicView.Location = New Point(picView.Left, picView.Bottom)
+        hsbPicView.Size = New Size(picView.Width, 15)
+        vsbPicView.Location = New Point(picView.Right, picView.Top)
+        vsbPicView.Size = New Size(15, picView.Height)
+
+        hsbPicView.Maximum = 0
+        vsbPicView.Maximum = 0
+
+        panelOutlierFinder.Left = vsbPicView.Right + 10
         dgvResults.Left = panelOutlierFinder.Left
         dgvResults.Top = panelOutlierFinder.Bottom + 10
-        dgvResults.Height = picView.Bottom - dgvResults.Top
-        Me.ClientSize = New Size(panelOutlierFinder.Right + 10, picView.Bottom + 10)
+        dgvResults.Height = hsbPicView.Bottom - dgvResults.Top
+        Me.ClientSize = New Size(panelOutlierFinder.Right + 10, hsbPicView.Bottom + 10)
 
-        ' Add any initialization after the InitializeComponent() call.
         ' Create the buffer bitmap
         bufferBitmap = New Bitmap(picView.Width, picView.Height)
 
@@ -69,11 +80,11 @@ Public Class FormGeometryCalculator
         dgvResults.Columns(2).HeaderText = "Value"
 
         ' Set example points
-        outlierPoints.Add(New PointF With {.X = 350.25, .Y = 268.12})
-        outlierPoints.Add(New PointF With {.X = 415.3, .Y = 142.8})
-        outlierPoints.Add(New PointF With {.X = 680.9, .Y = 350.66})
-        outlierPoints.Add(New PointF With {.X = 540.52, .Y = 150.06})
-        outlierPoints.Add(New PointF With {.X = 276.33, .Y = 230.78})
+        outlierPoints.Add(New PointF With {.X = 50.25, .Y = 168.12})
+        outlierPoints.Add(New PointF With {.X = -55.3, .Y = 142.8})
+        outlierPoints.Add(New PointF With {.X = 80.9, .Y = -250.66})
+        outlierPoints.Add(New PointF With {.X = 400.52, .Y = 150.06})
+        outlierPoints.Add(New PointF With {.X = -306.33, .Y = -230.78})
 
         ' Update data grid view with points
         dgvPoints.ColumnCount = 3
@@ -86,6 +97,7 @@ Public Class FormGeometryCalculator
         Next
 
         UpdatePointsFromDataGrid()
+
         UpdateUI()
         DrawAll()
     End Sub
@@ -178,7 +190,14 @@ Public Class FormGeometryCalculator
     End Sub
 
     Private Sub picView_MouseClick(sender As Object, e As MouseEventArgs) Handles picView.MouseClick
-        clickedPt = New PointF(e.Location.X * zoomFactor, e.Location.Y * zoomFactor)
+        clickedPt = New PointF(e.Location.X, e.Location.Y)
+
+        clickedPt.X -= centerX
+        clickedPt.Y = centerY - clickedPt.Y
+
+        clickedPt.X /= zoomFactor
+        clickedPt.Y /= zoomFactor
+
         Dim threshold As Single = 2
         If e.Button = MouseButtons.Right Then
             ShowContextMenu(e.Location)
@@ -252,33 +271,35 @@ lEnd:
     End Sub
     Private Sub picView_Paint(sender As Object, e As PaintEventArgs) Handles picView.Paint
         ' Display the buffer on the PictureBox
-        e.Graphics.DrawImage(bufferBitmap, 0, 0, picView.Width, picView.Height)
+        'e.Graphics.Clear(Color.White)
+        e.Graphics.TranslateTransform(-hsbPicView.Value, -vsbPicView.Value)
+        e.Graphics.DrawImage(bufferBitmap, 0, 0, picView.Width * zoomFactor, picView.Height * zoomFactor)
     End Sub
     Private Sub DrawOnBuffer(ByRef g As Graphics)
 
         ' Draw the inactive elements
         For Each circle As Circle In circles
-            g.DrawEllipse(Pens.Magenta, circle.rc)
-            g.FillEllipse(brshMagenta, CInt(circle.center.X - 2), CInt(circle.center.Y - 2), 4, 4)
+            g.DrawEllipse(Pens.Magenta, SR(circle.rc))
+            g.FillEllipse(brshMagenta, centerX + CInt(circle.center.X - 2), centerY - circle.center.Y - 2, 4, 4)
             g.DrawString("(" + circle.center.X.ToString + ", " + circle.center.Y.ToString + ")",
-                            fontNormal, brshMagenta, circle.center.X + 5, circle.center.Y + 5)
+                            fontNormal, brshMagenta, centerX + circle.center.X + 5, centerY - (circle.center.Y + 5))
         Next
 
         For Each circle As Circle In selCircles
-            g.DrawEllipse(penBoldMagenta, circle.rc)
-            g.FillEllipse(brshMagenta, CInt(circle.center.X - 2), CInt(circle.center.Y - 2), 4, 4)
+            g.DrawEllipse(penBoldMagenta, SR(circle.rc))
+            g.FillEllipse(brshMagenta, centerX + CInt(circle.center.X - 2), centerY - circle.center.Y - 2, 4, 4)
             g.DrawString("(" + circle.center.X.ToString + ", " + circle.center.Y.ToString + ")",
-                            fontNormal, brshMagenta, circle.center.X + 5, circle.center.Y + 5)
+                            fontNormal, brshMagenta, centerX + circle.center.X + 5, centerY - (circle.center.Y + 5))
         Next
 
         For Each line As Line In lines
-            g.DrawLine(Pens.Green, line.startPt, line.endPt)
+            g.DrawLine(Pens.Green, SP(line.startPt), SP(line.endPt))
             DrawPoint(g, line.startPt, brshGreen, brshGreen, fontNormal)
             DrawPoint(g, line.endPt, brshGreen, brshGreen, fontNormal)
         Next
 
         For Each line As Line In selLines
-            g.DrawLine(penBoldGreen, line.startPt, line.endPt)
+            g.DrawLine(penBoldGreen, SP(line.startPt), SP(line.endPt))
             DrawPoint(g, line.startPt, brshGreen, brshGreen, fontNormal)
             DrawPoint(g, line.endPt, brshGreen, brshGreen, fontNormal)
         Next
@@ -300,29 +321,29 @@ lEnd:
                 DrawPoint(g, activePoint, brshRed, brshGreen, fontNormal, 3, "Max")
             End If
             If tangentSelected Then
-                g.DrawLine(Pens.Red, ptTangents(0), selPoints(0))
-                g.DrawLine(Pens.Blue, ptTangents(0), selCircles(0).center)
+                g.DrawLine(Pens.Red, SP(ptTangents(0)), SP(selPoints(0)))
+                g.DrawLine(Pens.Blue, SP(ptTangents(0)), SP(selCircles(0).center))
                 DrawPoint(g, ptTangents(0), brshRed, brshGreen, fontNormal, 2, "Tangent 1")
-                g.DrawLine(Pens.Red, ptTangents(1), selPoints(0))
-                g.DrawLine(Pens.Blue, ptTangents(1), selCircles(0).center)
+                g.DrawLine(Pens.Red, SP(ptTangents(1)), SP(selPoints(0)))
+                g.DrawLine(Pens.Blue, SP(ptTangents(1)), SP(selCircles(0).center))
                 DrawPoint(g, ptTangents(1), brshRed, brshGreen, fontNormal, 2, "Tangent 2")
             End If
         End If
 
         If curMode = GeometryType.PointAndLine And selPoints.Count > 0 And selLines.Count > 0 Then
-            g.DrawLine(Pens.Red, activePoint, selPoints(0))
+            g.DrawLine(Pens.Red, SP(activePoint), SP(selPoints(0)))
             DrawPoint(g, activePoint, brshBlue, brshBlack, fontNormal)
             If perpendicularSelected Then
                 If activePoint.X >= selLines(0).startPt.X And activePoint.X >= selLines(0).endPt.X Then
-                    g.DrawLine(Pens.Magenta, activePoint, If(selLines(0).startPt.X > selLines(0).endPt.X, selLines(0).startPt, selLines(0).endPt))
+                    g.DrawLine(Pens.Magenta, SP(activePoint), SP(If(selLines(0).startPt.X > selLines(0).endPt.X, selLines(0).startPt, selLines(0).endPt)))
                 ElseIf activePoint.X <= selLines(0).startPt.X And activePoint.X <= selLines(0).endPt.X Then
-                    g.DrawLine(Pens.Magenta, activePoint, If(selLines(0).startPt.X < selLines(0).endPt.X, selLines(0).startPt, selLines(0).endPt))
+                    g.DrawLine(Pens.Magenta, SP(activePoint), SP(If(selLines(0).startPt.X < selLines(0).endPt.X, selLines(0).startPt, selLines(0).endPt)))
                 End If
             End If
         End If
 
         If curMode = GeometryType.CircleAndCircle And selCircles.Count > 1 Then
-            g.DrawLine(Pens.Blue, selCircles(0).center, selCircles(1).center)
+            g.DrawLine(Pens.Blue, SP(selCircles(0).center), SP(selCircles(1).center))
         End If
 
         If curMode = GeometryType.IntersectionBetweenTwoLines And selLines.Count > 1 Then
@@ -471,12 +492,22 @@ lEnd:
         g.SmoothingMode = Drawing2D.SmoothingMode.AntiAlias
         g.Clear(Color.White)
 
+        'Draw X-Y axis
+        g.DrawLine(Pens.Black, 0, centerY, picView.Width, centerY)
+        g.DrawLine(Pens.Black, centerX, 0, centerX, picView.Height)
+
         DrawPointsForOutlier(g)
         DrawBestFitCircle(g, foundCircle)
         DrawTrendLine(g, foundLine)
         DrawOnBuffer(g)
 
         If redraw Then picView.Invalidate()
+    End Sub
+
+    Public Sub DrawPoint(ByRef g As Graphics, pt As PointF, ByRef brshPoint As Brush, ByRef brshString As Brush, ByRef font As Font, Optional sz As Integer = 2, Optional suffix As String = "")
+        Dim newPoint As PointF = SP(pt)
+        g.FillEllipse(brshPoint, CInt(newPoint.X - sz), CInt(newPoint.Y - sz), sz * 2, sz * 2)
+        g.DrawString(suffix + "(" + pt.X.ToString + ", " + pt.Y.ToString + ")", font, brshString, newPoint.X + 5, newPoint.Y + 5)
     End Sub
 
     Private Sub DrawPointsForOutlier(ByRef g As Graphics)
@@ -494,7 +525,7 @@ lEnd:
                      "y = " + CSng(ln.slope).ToString + "x " + If(ln.intercept > 0, "+ ", "") + CSng(ln.intercept).ToString), fontBig, brshBlack, 10, 10)
 
         ' Draw the trend line
-        g.DrawLine(New Pen(brshGreen, 2), ln.startPt, ln.endPt)
+        g.DrawLine(New Pen(brshGreen, 2), SP(ln.startPt), SP(ln.endPt))
 
         ' Draw the line from each point to its nearest point on trend line
         For Each pt As PointF In outlierPoints
@@ -502,7 +533,7 @@ lEnd:
             DrawPoint(g, pt, brshBlue, brshBlack, fontNormal, 3)
 
             If ln.IsVertical() Then
-                g.FillEllipse(brshRed, pt.X - 3, pt.Y - 3, 6, 6)
+                g.FillEllipse(brshRed, centerX + pt.X - 3, centerY - pt.Y - 3, 6, 6)
                 Continue For
             End If
 
@@ -510,10 +541,10 @@ lEnd:
             Dim xNearest As Double = (pt.X + ln.slope * pt.Y - ln.slope * ln.intercept) / (ln.slope ^ 2 + 1)
             Dim yNearest As Double = ln.slope * xNearest + ln.intercept
 
-            g.FillEllipse(brshRed, CSng(xNearest - 3), CSng(yNearest - 3), 6, 6)
+            g.FillEllipse(brshRed, centerX + CSng(xNearest - 3), centerY - CSng(yNearest) - 3, 6, 6)
 
             ' Draw the line between two points
-            g.DrawLine(Pens.Red, CSng(pt.X), CSng(pt.Y), CSng(xNearest), CSng(yNearest))
+            g.DrawLine(Pens.Red, centerX + CSng(pt.X), centerY - CSng(pt.Y), centerX + CSng(xNearest), centerY - CSng(yNearest))
         Next
 
     End Sub
@@ -522,28 +553,28 @@ lEnd:
     Private Sub DrawBestFitCircle(ByRef g As Graphics, ByRef circle As Circle)
         If outlierPoints.Count < 3 Or circle Is Nothing Then Exit Sub
 
-        Dim centerX As Single = Math.Floor(circle.center.X * 1000) / 1000
-        Dim centerY As Single = Math.Floor(circle.center.Y * 1000) / 1000
+        Dim cX As Single = Math.Floor(circle.center.X * 1000) / 1000
+        Dim cY As Single = Math.Floor(circle.center.Y * 1000) / 1000
         Dim radius As Single = Math.Floor(circle.radius * 1000) / 1000
 
         For Each pt As PointF In outlierPoints
             DrawPoint(g, pt, brshBlue, brshBlack, fontNormal, 3)
-            Dim angle As Double = Math.Atan((pt.Y - centerY) / (pt.X - centerX))
-            Dim pt1 As PointF = New PointF(centerX + circle.radius * Math.Cos(angle), centerY + circle.radius * Math.Sin(angle))
-            Dim pt2 As PointF = New PointF(centerX + circle.radius * Math.Cos(angle + Math.PI), centerY + circle.radius * Math.Sin(angle + Math.PI))
+            Dim angle As Double = Math.Atan((pt.Y - cY) / (pt.X - cX))
+            Dim pt1 As PointF = New PointF(cX + circle.radius * Math.Cos(angle), cY + circle.radius * Math.Sin(angle))
+            Dim pt2 As PointF = New PointF(cX + circle.radius * Math.Cos(angle + Math.PI), cY + circle.radius * Math.Sin(angle + Math.PI))
             Dim distance1 As Single = CalculateDistance(pt, pt1)
             Dim distance2 As Single = CalculateDistance(pt, pt2)
-            g.DrawLine(Pens.Blue, pt, If(distance1 > distance2, pt2, pt1))
+            g.DrawLine(Pens.Blue, SP(pt), SP(If(distance1 > distance2, pt2, pt1)))
         Next
 
         ' Draw center of the circle
-        g.FillEllipse(brshRed, centerX - 2, centerY - 2, 4, 4)
-        g.DrawString("(" + centerX.ToString + ", " + centerY.ToString + ")", fontNormal,
-                    brshBlack, centerX + 5, centerY - 5)
+        g.FillEllipse(brshRed, centerX + cX - 2, centerY - cY - 2, 4, 4)
+        g.DrawString("(" + cX.ToString + ", " + cY.ToString + ")", fontNormal,
+                    brshBlack, centerX + cX + 5, centerY - (cY - 5))
         ' Draw radius of the circle
         g.DrawString("Radius:" + radius.ToString, fontBig, brshBlack, 10, 10)
         ' Draw the circle
-        g.DrawEllipse(New Pen(Color.Red, 2), centerX - radius, centerY - radius, 2 * radius, 2 * radius)
+        g.DrawEllipse(New Pen(Color.Red, 2), centerX + cX - radius, centerY - cY - radius, 2 * radius, 2 * radius)
 
     End Sub
 
@@ -594,6 +625,7 @@ lEnd:
     '----------------------------------------------------------------------------'
     Private Sub btnFindBFC_Click(sender As Object, e As EventArgs) Handles btnFindBFC.Click
         FindBestFitCircle()
+        foundLine = Nothing
         DrawAll()
     End Sub
     Private Sub btnAddFoundCircle_Click(sender As Object, e As EventArgs) Handles btnAddFoundCircle.Click
@@ -618,8 +650,7 @@ lEnd:
         End If
 
         ' Use the Least Squares method to find the trend line
-        foundLine = TrendLineFinder.Calculate(outlierPoints, picView.Width, picView.Height)
-
+        foundLine = TrendLineFinder.Calculate(outlierPoints, -picView.Width / 2, -picView.Height / 2, picView.Width / 2, picView.Height / 2)
 
         ' Calculate the minimum distance of each point to circle
         For Each row As DataGridViewRow In dgvPoints.Rows
@@ -633,6 +664,7 @@ lEnd:
     End Sub
     Private Sub btnFindTrendLine_Click(sender As Object, e As EventArgs) Handles btnFindTrendLine.Click
         FindTrendLine()
+        foundCircle = Nothing
         DrawAll()
     End Sub
 
@@ -725,27 +757,51 @@ lEnd:
         Return False
     End Function
 
+    Private Function SP(pt As PointF) As PointF
+        Return New PointF(centerX + pt.X, centerY - pt.Y)
+    End Function
+    Private Function SR(rect As RectangleF) As RectangleF
+        Dim newRect As RectangleF = New RectangleF(SP(rect.Location), rect.Size)
+        Return newRect
+    End Function
+
     Private Sub btnZoomIn_Click(sender As Object, e As EventArgs) Handles btnZoomIn.Click
-        zoomFactor *= 0.8
-        lblCurrentZoom.Text = CInt(1 / zoomFactor * 100).ToString + "%"
-        bufferBitmap = New Bitmap(CInt(picView.Width * zoomFactor), CInt(picView.Height * zoomFactor))
-        DrawAll()
+        zoomFactor *= 1.2
+        lblCurrentZoom.Text = CInt(zoomFactor * 100).ToString + "%"
+        InitScroll()
         picView.Invalidate()
     End Sub
 
     Private Sub btnZoomOut_Click(sender As Object, e As EventArgs) Handles btnZoomOut.Click
-        zoomFactor *= 1.2
-        lblCurrentZoom.Text = CInt(1 / zoomFactor * 100).ToString + "%"
-        bufferBitmap = New Bitmap(CInt(picView.Width * zoomFactor), CInt(picView.Height * zoomFactor))
-        DrawAll()
+        zoomFactor *= 0.8
+        lblCurrentZoom.Text = CInt(zoomFactor * 100).ToString + "%"
+        InitScroll()
         picView.Invalidate()
     End Sub
 
     Private Sub btnSetDefaultZoom_Click(sender As Object, e As EventArgs) Handles btnSetDefaultZoom.Click
         zoomFactor = 1
         lblCurrentZoom.Text = "100%"
-        bufferBitmap = New Bitmap(CInt(picView.Width * zoomFactor), CInt(picView.Height * zoomFactor))
-        DrawAll()
+        InitScroll()
+        picView.Invalidate()
+    End Sub
+
+    Private Sub InitScroll()
+        If zoomFactor > 1 Then
+            hsbPicView.Maximum = CInt(picView.Width * zoomFactor)
+            vsbPicView.Maximum = CInt(picView.Height * zoomFactor)
+            hsbPicView.LargeChange = picView.Width
+            vsbPicView.LargeChange = picView.Height
+        Else
+            hsbPicView.Maximum = 0
+            vsbPicView.Maximum = 0
+        End If
+    End Sub
+    Private Sub vsbPicView_Scroll(sender As Object, e As ScrollEventArgs) Handles vsbPicView.Scroll
+        picView.Invalidate()
+    End Sub
+
+    Private Sub hsbPicView_Scroll(sender As Object, e As ScrollEventArgs) Handles hsbPicView.Scroll
         picView.Invalidate()
     End Sub
 End Class

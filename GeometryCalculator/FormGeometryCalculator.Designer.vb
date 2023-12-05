@@ -41,6 +41,8 @@ Partial Class FormGeometryCalculator
         btnSetDefaultZoom = New Button()
         lblCurrentZoom = New Label()
         dgvResults = New DataGridView()
+        hsbPicView = New HScrollBar()
+        vsbPicView = New VScrollBar()
         CType(picView, ComponentModel.ISupportInitialize).BeginInit()
         CType(dgvPoints, ComponentModel.ISupportInitialize).BeginInit()
         panelOutlierFinder.SuspendLayout()
@@ -49,10 +51,11 @@ Partial Class FormGeometryCalculator
         ' 
         ' picView
         ' 
+        picView.BackColor = Color.White
         picView.BorderStyle = BorderStyle.FixedSingle
         picView.Location = New Point(10, 11)
         picView.Name = "picView"
-        picView.Size = New Size(653, 447)
+        picView.Size = New Size(631, 447)
         picView.TabIndex = 0
         picView.TabStop = False
         ' 
@@ -232,11 +235,27 @@ Partial Class FormGeometryCalculator
         dgvResults.Size = New Size(370, 150)
         dgvResults.TabIndex = 17
         ' 
+        ' hsbPicView
+        ' 
+        hsbPicView.Location = New Point(10, 455)
+        hsbPicView.Name = "hsbPicView"
+        hsbPicView.Size = New Size(631, 16)
+        hsbPicView.TabIndex = 18
+        ' 
+        ' vsbPicView
+        ' 
+        vsbPicView.Location = New Point(644, 12)
+        vsbPicView.Name = "vsbPicView"
+        vsbPicView.Size = New Size(14, 441)
+        vsbPicView.TabIndex = 19
+        ' 
         ' FormGeometryCalculator
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(1051, 621)
+        ClientSize = New Size(1047, 621)
+        Controls.Add(vsbPicView)
+        Controls.Add(hsbPicView)
         Controls.Add(dgvResults)
         Controls.Add(lblCurrentZoom)
         Controls.Add(btnSetDefaultZoom)
@@ -275,5 +294,7 @@ Partial Class FormGeometryCalculator
     Friend WithEvents btnSetDefaultZoom As Button
     Friend WithEvents lblCurrentZoom As Label
     Friend WithEvents dgvResults As DataGridView
+    Friend WithEvents hsbPicView As HScrollBar
+    Friend WithEvents vsbPicView As VScrollBar
 
 End Class
